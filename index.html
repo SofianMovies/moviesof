@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MovieSof</title>
+<meta name="theme-color" content="#0b0b10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MovieSof">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-512.png">
+<link rel="icon" href="icon-512.png">
+<style>
+  :root {
+    --bg: #0b0b10;
+    --panel: #16161f;
+    --panel-2: #1f1f2b;
+    --text: #f2f2f5;
+    --muted: #9a9aab;
+    --accent: #e50914;
+    --gold: #f5c518;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: radial-gradient(circle at 50% -20%, #2a0a0e 0%, var(--bg) 55%) fixed, var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));
+  }
+  header { text-align: center; padding: 24px 0 12px; }
+  h1 { margin: 0; font-size: 34px; letter-spacing: 1px; }
+  h1 span { color: var(--accent); }
+  .tagline { color: var(--muted); margin: 6px 0 0; font-size: 14px; }
+  main { max-width: 640px; margin: 0 auto; }
+  form.search { display: flex; gap: 8px; margin: 16px 0; }
+  input {
+    flex: 1; min-width: 0; padding: 14px 16px; font-size: 17px;
+    border-radius: var(--radius); border: 1px solid #2c2c3a;
+    background: var(--panel); color: var(--text); outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  button {
+    padding: 0 18px; font-size: 16px; font-weight: 600; border: 0;
+    border-radius: var(--radius); background: var(--accent); color: #fff; cursor: pointer;
+  }
+  button.link { background: none; color: var(--muted); padding: 8px; font-weight: 400; font-size: 13px; text-decoration: underline; }
+  .msg { text-align: center; color: var(--muted); padding: 24px 8px; }
+  .results { display: flex; flex-direction: column; gap: 10px; }
+  .item {
+    display: flex; gap: 12px; align-items: center; padding: 8px;
+    background: var(--panel); border-radius: var(--radius); cursor: pointer; border: 1px solid transparent;
+  }
+  .item:active, .item:hover { border-color: #3a3a4a; }
+  .item img, .item .noposter { width: 52px; height: 78px; border-radius: 8px; object-fit: cover; background: var(--panel-2); flex: none; }
+  .item .t { font-weight: 600; }
+  .item .s { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .card { background: var(--panel); border-radius: var(--radius); overflow: hidden; }
+  .card .top { display: flex; gap: 14px; padding: 14px; }
+  .card .poster { width: 120px; height: 180px; border-radius: 10px; object-fit: cover; background: var(--panel-2); flex: none; }
+  .card h2 { margin: 0 0 4px; font-size: 22px; line-height: 1.2; }
+  .meta { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+  .badge { display: inline-block; background: var(--panel-2); color: var(--gold); font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 99px; margin-right: 6px; }
+  .cast { font-size: 14px; }
+  .cast b { color: var(--muted); font-weight: 400; }
+  .overview { padding: 0 14px 14px; line-height: 1.45; font-size: 15px; overflow-wrap: anywhere; }
+  .section { padding: 12px 14px 14px; border-top: 1px solid #262633; }
+  .section h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .providers { display: flex; flex-wrap: wrap; gap: 10px; }
+  .prov { display: flex; flex-direction: column; align-items: center; width: 64px; text-decoration: none; color: var(--text); font-size: 11px; text-align: center; }
+  .prov img { width: 52px; height: 52px; border-radius: 12px; margin-bottom: 4px; }
+  .prov.off { opacity: .45; filter: grayscale(.6); pointer-events: none; }
+  .prov.on img { box-shadow: 0 0 0 2px var(--accent); }
+  .back { margin-bottom: 10px; }
+  .credit { text-align: center; color: var(--muted); font-size: 12px; margin-top: 28px; line-height: 1.6; }
+  .credit a { color: var(--muted); }
+  .setup { background: var(--panel); border-radius: var(--radius); padding: 18px; line-height: 1.5; }
+  .setup p { margin: 0 0 12px; }
+  .setup form { display: flex; gap: 8px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Movie<span>Sof</span></h1>
+  <p class="tagline">Où regarder vos films et séries en France</p>
+</header>
+
+<main>
+  <!-- Écran 1 : enregistrer la clé API (une seule fois, elle reste sur cet appareil) -->
+  <section id="setup" class="setup hidden">
+    <p><b>Bienvenue !</b> Collez votre <b>API Key</b> TMDB ci-dessous.</p>
+    <p class="s" style="color:var(--muted);font-size:14px">Elle est gardée uniquement sur cet appareil, jamais envoyée ailleurs que chez TMDB.</p>
+    <form id="keyForm">
+      <input id="keyInput" type="password" placeholder="Votre API Key" autocomplete="off">
+      <button>OK</button>
+    </form>
+  </section>
+
+  <!-- Écran 2 : la recherche -->
+  <section id="app" class="hidden">
+    <form class="search" id="searchForm">
+      <input id="q" type="search" placeholder="Titre d'un film ou d'une série…" autocomplete="off" enterkeyhint="search">
+      <button>Chercher</button>
+    </form>
+    <div id="out"></div>
+  </section>
+
+  <p class="credit">
+    Données films : <a href="https://www.themoviedb.org" target="_blank" rel="noopener">TMDB</a>
+    · Plateformes : <a href="https://www.justwatch.com" target="_blank" rel="noopener">JustWatch</a><br>
+    Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB.<br>
+    <button class="link" id="resetKey">Changer de clé</button>
+  </p>
+</main>
+
+<script>
+const API = "https://api.themoviedb.org/3";
+const IMG = "https://image.tmdb.org/t/p/";
+const KEY_STORAGE = "moviesof_tmdb_key";
+const $ = (id) => document.getElementById(id);
+
+// Plateformes "cliquables" : on ouvre leur recherche sur ce titre.
+// Si vous êtes connecté sur la plateforme (ou si son app est installée), vous arrivez sur votre compte.
+const CLICKABLE = [
+  { match: /netflix/i, url: (t) => "https://www.netflix.com/search?q=" + encodeURIComponent(t) },
+  { match: /amazon|prime video/i, url: (t) => "https://www.primevideo.com/search?phrase=" + encodeURIComponent(t) },
+  { match: /youtube/i, url: (t) => "https://www.youtube.com/results?search_query=" + encodeURIComponent(t) },
+  { match: /canal/i, url: (t) => "https://www.canalplus.com/recherche?q=" + encodeURIComponent(t) },
+];
+
+function getKey() { try { return localStorage.getItem(KEY_STORAGE) || ""; } catch { return ""; } }
+function setKey(k) { try { localStorage.setItem(KEY_STORAGE, k); } catch {} }
+
+async function tmdb(path, params = {}) {
+  const url = new URL(API + path);
+  url.searchParams.set("api_key", getKey());
+  url.searchParams.set("language", "fr-FR");
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  const res = await fetch(url);
+  if (res.status === 401) throw new Error("cle");
+  if (!res.ok) throw new Error("reseau");
+  return res.json();
+}
+
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function year(d) { return d ? d.slice(0, 4) : "—"; }
+function cut(text, max = 200) {
+  if (!text) return "Pas de résumé disponible.";
+  if (text.length <= max) return text;
+  return text.slice(0, max - 1).trimEnd() + "…";
+}
+function showMsg(text) { $("out").innerHTML = `<p class="msg">${esc(text)}</p>`; }
+function showError(e) {
+  if (e.message === "cle") { showMsg("Votre clé API n'est pas acceptée par TMDB. Touchez « Changer de clé » en bas."); }
+  else { showMsg("Impossible de joindre TMDB. Vérifiez votre connexion Internet."); }
+}
+
+// 1) Recherche : films + séries
+let lastResults = [];
+async function search(q) {
+  showMsg("Recherche…");
+  try {
+    const data = await tmdb("/search/multi", { query: q, include_adult: "false" });
+    lastResults = data.results.filter((r) => r.media_type === "movie" || r.media_type === "tv").slice(0, 12);
+    renderList();
+  } catch (e) { showError(e); }
+}
+
+function renderList() {
+  if (!lastResults.length) return showMsg("Aucun résultat. Essayez un autre titre.");
+  $("out").innerHTML = `<div class="results">${lastResults.map((r, i) => {
+    const title = r.title || r.name;
+    const type = r.media_type === "tv" ? "Série" : "Film";
+    const img = r.poster_path ? `<img src="${IMG}w154${r.poster_path}" alt="" loading="lazy">` : `<div class="noposter"></div>`;
+    return `<div class="item" data-i="${i}">${img}<div><div class="t">${esc(title)}</div><div class="s">${type} · ${year(r.release_date || r.first_air_date)}</div></div></div>`;
+  }).join("")}</div>`;
+  document.querySelectorAll(".item").forEach((el) => el.addEventListener("click", () => openDetail(lastResults[+el.dataset.i])));
+}
+
+// 2) Fiche détaillée : infos + 3 acteurs + plateformes en France
+async function openDetail(r) {
+  showMsg("Chargement…");
+  try {
+    const type = r.media_type;
+    const d = await tmdb(`/${type}/${r.id}`, { append_to_response: "credits,watch/providers" });
+    renderDetail(d, type);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) { showError(e); }
+}
+
+function providerBlock(label, list, title) {
+  if (!list || !list.length) return "";
+  const items = list.map((p) => {
+    const rule = CLICKABLE.find((c) => c.match.test(p.provider_name));
+    const logo = `<img src="${IMG}w92${p.logo_path}" alt="">`;
+    if (rule) return `<a class="prov on" href="${rule.url(title)}" target="_blank" rel="noopener">${logo}${esc(p.provider_name)}</a>`;
+    return `<span class="prov off">${logo}${esc(p.provider_name)}</span>`;
+  }).join("");
+  return `<div class="section"><h3>${label}</h3><div class="providers">${items}</div></div>`;
+}
+
+function renderDetail(d, type) {
+  const title = d.title || d.name;
+  const date = d.release_date || d.first_air_date;
+  const cast = (d.credits?.cast || []).slice(0, 3).map((c) => c.name).join(", ") || "—";
+  const fr = d["watch/providers"]?.results?.FR;
+  const poster = d.poster_path ? `<img class="poster" src="${IMG}w342${d.poster_path}" alt="">` : `<div class="poster"></div>`;
+  const seasons = type === "tv" && d.number_of_seasons ? `<span class="badge">${d.number_of_seasons} saison${d.number_of_seasons > 1 ? "s" : ""}</span>` : "";
+  const kind = `<span class="badge">${type === "tv" ? "Série" : "Film"}</span>`;
+
+  let where = "";
+  if (fr) {
+    where = providerBlock("Inclus dans l'abonnement", fr.flatrate, title)
+          + providerBlock("Gratuit (avec pubs)", (fr.free || []).concat(fr.ads || []), title)
+          + providerBlock("À louer", fr.rent, title)
+          + providerBlock("À acheter", fr.buy, title);
+  }
+  if (!where) where = `<div class="section"><h3>Où regarder</h3><p class="meta">Disponible sur aucune plateforme en France pour le moment.</p></div>`;
+
+  $("out").innerHTML = `
+    <button class="link back" id="back">← Retour aux résultats</button>
+    <article class="card">
+      <div class="top">
+        ${poster}
+        <div>
+          <h2>${esc(title)}</h2>
+          <div class="meta">${year(date)}</div>
+          <div style="margin-bottom:10px">${kind}${seasons}</div>
+          <div class="cast"><b>Avec :</b> ${esc(cast)}</div>
+        </div>
+      </div>
+      <p class="overview">${esc(cut(d.overview))}</p>
+      ${where}
+    </article>`;
+  $("back").addEventListener("click", renderList);
+}
+
+// Démarrage
+function start() {
+  const hasKey = !!getKey();
+  $("setup").classList.toggle("hidden", hasKey);
+  $("app").classList.toggle("hidden", !hasKey);
+}
+$("keyForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const k = $("keyInput").value.trim();
+  if (k) { setKey(k); $("keyInput").value = ""; start(); }
+});
+$("searchForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const q = $("q").value.trim();
+  if (q) { $("q").blur(); search(q); }
+});
+$("resetKey").addEventListener("click", () => { try { localStorage.removeItem(KEY_STORAGE); } catch {} start(); });
+start();
+</script>
+</body>
+</html>

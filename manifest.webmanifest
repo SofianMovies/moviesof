@@ -1,0 +1,13 @@
+{
+  "name": "MovieSof",
+  "short_name": "MovieSof",
+  "description": "Où regarder vos films et séries en France",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b0b10",
+  "theme_color": "#0b0b10",
+  "lang": "fr",
+  "icons": [
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
