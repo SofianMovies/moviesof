@@ -68,6 +68,8 @@
   .badge { display: inline-block; background: var(--panel-2); color: var(--gold); font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 99px; margin-right: 6px; }
   .cast { font-size: 14px; }
   .cast b { color: var(--muted); font-weight: 400; }
+  .actor { background: none; border: 0; padding: 0; font: inherit; color: var(--text); text-decoration: underline; text-decoration-color: var(--muted); text-underline-offset: 3px; cursor: pointer; }
+  .list-title { font-size: 18px; margin: 4px 0 12px; }
   .overview { padding: 0 14px 14px; line-height: 1.45; font-size: 15px; overflow-wrap: anywhere; }
   .section { padding: 12px 14px 14px; border-top: 1px solid #262633; }
   .section h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
@@ -172,24 +174,47 @@ function showError(e) {
 
 // 1) Recherche : films + séries
 let lastResults = [];
+let listTitle = "";
 async function search(q) {
   showMsg("Recherche…");
   try {
     const data = await tmdb("/search/multi", { query: q, include_adult: "false" });
     lastResults = data.results.filter((r) => r.media_type === "movie" || r.media_type === "tv").slice(0, 12);
+    listTitle = "";
     renderList();
   } catch (e) { showError(e); }
 }
 
 function renderList() {
   if (!lastResults.length) return showMsg("Aucun résultat. Essayez un autre titre.");
-  $("out").innerHTML = `<div class="results">${lastResults.map((r, i) => {
+  const heading = listTitle ? `<h2 class="list-title">${esc(listTitle)}</h2>` : "";
+  $("out").innerHTML = `${heading}<div class="results">${lastResults.map((r, i) => {
     const title = r.title || r.name;
     const type = r.media_type === "tv" ? "Série" : "Film";
     const img = r.poster_path ? `<img src="${IMG}w154${r.poster_path}" alt="" loading="lazy">` : `<div class="noposter"></div>`;
     return `<div class="item" data-i="${i}">${img}<div><div class="t">${esc(title)}</div><div class="s">${type} · ${year(r.release_date || r.first_air_date)}</div></div></div>`;
   }).join("")}</div>`;
   document.querySelectorAll(".item").forEach((el) => el.addEventListener("click", () => openDetail(lastResults[+el.dataset.i])));
+}
+
+// 1 bis) Filmographie d'un acteur : ses films et séries les plus connus
+async function openActor(id, name) {
+  showMsg("Chargement…");
+  try {
+    const data = await tmdb(`/person/${id}/combined_credits`);
+    const seen = new Set();
+    lastResults = (data.cast || [])
+      .filter((r) => r.media_type === "movie" || r.media_type === "tv")
+      // on écarte les talk-shows, journaux TV et apparitions « dans son propre rôle »
+      .filter((r) => !(r.genre_ids || []).some((g) => g === 10767 || g === 10763))
+      .filter((r) => !/^(self|lui-même|elle-même|himself|herself)/i.test(r.character || ""))
+      .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+      .filter((r) => { const k = r.media_type + r.id; if (seen.has(k)) return false; seen.add(k); return true; })
+      .slice(0, 20);
+    listTitle = `Avec ${name}`;
+    renderList();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) { showError(e); }
 }
 
 // 2) Fiche détaillée : infos + 3 acteurs + plateformes en France
@@ -218,7 +243,8 @@ function providerBlock(label, list, title, fallbackLink) {
 function renderDetail(d, type) {
   const title = d.title || d.name;
   const date = d.release_date || d.first_air_date;
-  const cast = (d.credits?.cast || []).slice(0, 3).map((c) => c.name).join(", ") || "—";
+  const actors = (d.credits?.cast || []).slice(0, 3);
+  const cast = actors.map((c, i) => `<button class="actor" data-a="${i}">${esc(c.name)}</button>`).join(", ") || "—";
   const fr = d["watch/providers"]?.results?.FR;
   const poster = d.poster_path ? `<img class="poster" src="${IMG}w342${d.poster_path}" alt="">` : `<div class="poster"></div>`;
   const seasons = type === "tv" && d.number_of_seasons ? `<span class="badge">${d.number_of_seasons} saison${d.number_of_seasons > 1 ? "s" : ""}</span>` : "";
@@ -243,13 +269,14 @@ function renderDetail(d, type) {
           <h2>${esc(title)}</h2>
           <div class="meta">${year(date)}</div>
           <div style="margin-bottom:10px">${kind}${seasons}</div>
-          <div class="cast"><b>Avec :</b> ${esc(cast)}</div>
+          <div class="cast"><b>Avec :</b> ${cast}</div>
         </div>
       </div>
       <p class="overview">${esc(cut(d.overview))}</p>
       ${where}
     </article>`;
   $("back").addEventListener("click", renderList);
+  document.querySelectorAll(".actor").forEach((el) => el.addEventListener("click", () => { const a = actors[+el.dataset.a]; openActor(a.id, a.name); }));
 }
 
 // Démarrage
