@@ -123,13 +123,19 @@ const IMG = "https://image.tmdb.org/t/p/";
 const KEY_STORAGE = "moviesof_tmdb_key";
 const $ = (id) => document.getElementById(id);
 
-// Plateformes "cliquables" : on ouvre leur recherche sur ce titre.
+// Plateformes connues : on ouvre leur recherche sur ce titre.
 // Si vous êtes connecté sur la plateforme (ou si son app est installée), vous arrivez sur votre compte.
+// Toutes les autres plateformes renvoient vers la page « Où regarder » de TMDB/JustWatch pour ce titre.
+const q = encodeURIComponent;
 const CLICKABLE = [
-  { match: /netflix/i, url: (t) => "https://www.netflix.com/search?q=" + encodeURIComponent(t) },
-  { match: /amazon|prime video/i, url: (t) => "https://www.primevideo.com/search?phrase=" + encodeURIComponent(t) },
-  { match: /youtube/i, url: (t) => "https://www.youtube.com/results?search_query=" + encodeURIComponent(t) },
-  { match: /canal/i, url: (t) => "https://www.canalplus.com/recherche?q=" + encodeURIComponent(t) },
+  { match: /netflix/i, url: (t) => "https://www.netflix.com/search?q=" + q(t) },
+  { match: /amazon|prime video/i, url: (t) => "https://www.primevideo.com/search?phrase=" + q(t) },
+  { match: /youtube/i, url: (t) => "https://www.youtube.com/results?search_query=" + q(t) },
+  { match: /canal/i, url: (t) => "https://www.canalplus.com/recherche?q=" + q(t) },
+  { match: /disney/i, url: (t) => "https://www.disneyplus.com/search?q=" + q(t) },
+  { match: /apple/i, url: (t) => "https://tv.apple.com/fr/search?term=" + q(t) },
+  { match: /google play/i, url: (t) => "https://play.google.com/store/search?c=movies&q=" + q(t) },
+  { match: /rakuten/i, url: (t) => "https://www.rakuten.tv/fr/search?q=" + q(t) },
 ];
 
 function getKey() { try { return localStorage.getItem(KEY_STORAGE) || ""; } catch { return ""; } }
@@ -192,12 +198,13 @@ async function openDetail(r) {
   } catch (e) { showError(e); }
 }
 
-function providerBlock(label, list, title) {
+function providerBlock(label, list, title, fallbackLink) {
   if (!list || !list.length) return "";
   const items = list.map((p) => {
     const rule = CLICKABLE.find((c) => c.match.test(p.provider_name));
+    const href = rule ? rule.url(title) : fallbackLink;
     const logo = `<img src="${IMG}w92${p.logo_path}" alt="">`;
-    if (rule) return `<a class="prov on" href="${rule.url(title)}" target="_blank" rel="noopener">${logo}${esc(p.provider_name)}</a>`;
+    if (href) return `<a class="prov on" href="${esc(href)}" target="_blank" rel="noopener">${logo}${esc(p.provider_name)}</a>`;
     return `<span class="prov off">${logo}${esc(p.provider_name)}</span>`;
   }).join("");
   return `<div class="section"><h3>${label}</h3><div class="providers">${items}</div></div>`;
@@ -214,10 +221,11 @@ function renderDetail(d, type) {
 
   let where = "";
   if (fr) {
-    where = providerBlock("Inclus dans l'abonnement", fr.flatrate, title)
-          + providerBlock("Gratuit (avec pubs)", (fr.free || []).concat(fr.ads || []), title)
-          + providerBlock("À louer", fr.rent, title)
-          + providerBlock("À acheter", fr.buy, title);
+    const link = fr.link;
+    where = providerBlock("Inclus dans l'abonnement", fr.flatrate, title, link)
+          + providerBlock("Gratuit (avec pubs)", (fr.free || []).concat(fr.ads || []), title, link)
+          + providerBlock("À louer", fr.rent, title, link)
+          + providerBlock("À acheter", fr.buy, title, link);
   }
   if (!where) where = `<div class="section"><h3>Où regarder</h3><p class="meta">Disponible sur aucune plateforme en France pour le moment.</p></div>`;
 
