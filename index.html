@@ -32,6 +32,8 @@
     padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));
   }
   header { text-align: center; padding: 24px 0 12px; }
+  .home { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
+  .logo { width: 56px; height: 56px; border-radius: 50%; box-shadow: 0 4px 18px rgba(229, 9, 20, .35); }
   h1 { margin: 0; font-size: 34px; letter-spacing: 1px; }
   h1 span { color: var(--accent); }
   .tagline { color: var(--muted); margin: 6px 0 0; font-size: 14px; }
@@ -85,7 +87,10 @@
 </head>
 <body>
 <header>
-  <h1>Movie<span>Sof</span></h1>
+  <a class="home" href="./" aria-label="Retour à l'accueil">
+    <img class="logo" src="logo.png" alt="">
+    <h1>Movie<span>Sof</span></h1>
+  </a>
   <p class="tagline">Où regarder vos films et séries en France</p>
 </header>
 
